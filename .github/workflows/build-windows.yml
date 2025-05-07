@@ -16,7 +16,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.21'  # Tailscale 推荐版本
+        go-version: '1.23'  # Tailscale 推荐版本
 
     - name: Install Dependencies
       run: go mod download
