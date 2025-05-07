@@ -1,0 +1,53 @@
+name: Build Tailscale macOS Universal Binary
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-macos-universal:
+    runs-on: macos-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.23'
+
+    - name: Download Go Modules
+      run: go mod download
+
+    - name: Build tailscaled for amd64
+      run: |
+        GOOS=darwin GOARCH=amd64 go build -o tailscaled-amd64 ./cmd/tailscaled
+        GOOS=darwin GOARCH=amd64 go build -o tailscale-amd64 ./cmd/tailscale
+
+    - name: Build tailscaled for arm64
+      run: |
+        GOOS=darwin GOARCH=arm64 go build -o tailscaled-arm64 ./cmd/tailscaled
+        GOOS=darwin GOARCH=arm64 go build -o tailscale-arm64 ./cmd/tailscale
+
+    - name: Merge binaries using lipo
+      run: |
+        lipo -create -output tailscaled tailscaled-amd64 tailscaled-arm64
+        lipo -create -output tailscale tailscale-amd64 tailscale-arm64
+
+        lipo -info tailscaled
+        lipo -info tailscale
+
+    - name: Zip binaries
+      run: |
+        mkdir tailscale-macos
+        mv tailscaled tailscale tailscale-macos/
+        cd tailscale-macos
+        zip -r ../tailscale-macos-universal.zip .
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: tailscale-macos-universal
+        path: tailscale-macos-universal.zip
